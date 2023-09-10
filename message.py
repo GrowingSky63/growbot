@@ -269,3 +269,32 @@ class Tags:
         self.system_msg: str = None
         self.message_id: str = None
         self.thread_id: str = None
+
+def parse_tags(received_msg):
+    parts = received_msg.split()
+    if parts[0].startswith("@"):
+        tags_str = parts.pop(0).lstrip("@")
+        tags = {}
+        for tag in tags_str.split(";"):  # Separando as tags
+            tag = tag.split("=")  # Separando a chave do valor, para cada tag
+            tag[0] = tag[0].replace(
+                "-", "_"
+            )  # tornando a string válida para criação de variável
+            tag[1] = tag[1].split(
+                ","
+            )  # Tentando segmentar o valor da tag, em lista
+            if len(tag[1]) <= 1:  # Caso não seja lista:
+                tag[1] = tag[1][0]  # Retorne o valor como string
+                tag[1] = tuple(
+                    tag[1].split("/")
+                )  # Separando o valor em (tag, meta-tag)
+                if len(tag[1]) <= 1:  # Caso não exista meta-tag
+                    tag[1] = tag[1][0]  # Retorene o valor como string
+            else:  # Caso seja lista
+                for i, j in enumerate(tag[1]):  # Itere sobre o valor
+                    tag[1][i] = tuple(
+                        j.split("/")
+                    )  # Separando o valor em (tag, meta-tag)
+                    if len(tag[1][i]) <= 1:  # Caso não exista meta-tag
+                        tag[1][i] = tag[1][i][0]  # Retorene o valor como string
+            tags[tag[0]] = tag[1]
