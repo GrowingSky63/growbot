@@ -1,5 +1,6 @@
 from typing import Optional, Union, Tuple, List, Dict
 from enum import Enum
+from datetime import datetime
 
 
 class PinnedChatPaidLevel(Enum):
@@ -13,6 +14,13 @@ class PinnedChatPaidLevel(Enum):
     EIGHT = "EIGHT"
     NINE = "NINE"
     TEN = "TEN"
+
+
+class SubPlan(Enum):
+    PRIME = "Prime"
+    TIER1 = "1000"
+    TIER2 = "2000"
+    TIER3 = "3000"
 
 
 class MsgID(Enum):
@@ -231,57 +239,269 @@ class TagDoesntExixts(Exception):
         super().__init__(msg)
 
 
+class Message:
+    def __init__(self, received_msg: str) -> None:
+        self.parse_message(received_msg)
+        self.tags = Tags(self)
+
+    def get_user_from_prefix(self, prefix):
+        domain = prefix.split("!")[0]
+        if domain.endswith(".tmi.twitch.tv"):
+            return domain.replace(".tmi.twitch.tv", "")
+        if "tmi.twitch.tv" not in domain:
+            return domain
+        return None
+
+    def parse_message(self, received_msg: str):
+        if received_msg.startswith("@"):
+            self.raw_tags = received_msg.split(" ")[0]
+            parts: list = received_msg.split(" ")[1:]
+        else:
+            self.raw_tags = None
+            parts: list = received_msg.split(" ")
+
+        self.prefix = None
+        self.user = None
+        self.channel = None
+        self.text = None
+        self.text_command = None
+        self.text_args = None
+        self.irc_command = None
+        self.irc_args = None
+
+        if parts[0].startswith(":"):
+            prefix = parts[0][1:]
+            self.user = self.get_user_from_prefix(prefix)
+            parts = parts[1:]
+
+        text_start = next(
+            (idx for idx, msg in enumerate(parts) if msg.startswith(":")), None
+        )
+        if text_start:
+            text_parts = parts[text_start:]
+            text_parts[0] = text_parts[0][1:]
+            self.text = " ".join(text_parts)
+            self.text_command = text_parts[0].lower()
+            self.text_args = text_parts[1:]
+            parts = parts[:text_start]
+
+        self.irc_command = parts[0]
+        irc_args = parts[1:]
+
+        hash_start = next(
+            (idx for idx, part in enumerate(irc_args) if part.startswith("#")), None
+        )
+        if hash_start != None:
+            self.channel = irc_args[hash_start][1:]
+
+
 class Tags:
-    def __init__(self, received_msg):
-        self.badge_info: Dict[
-            str:str
-        ] = None  # Cada chave do dicionário é um badge, seu valor correspondente é o METADATA. Pode vir vazio
-        self.badges: Dict[
-            str:int
-        ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
-        self.bits: int = None
-        self.color: str = None  # Hexadecimal do RGB correspondente. Pode vir vazio
-        self.display_name: str = None  # Pode vir vazio
-        self.emotes: Dict[str : Tuple[int, int]] = None
-        self.id: str = None
-        self.mod: bool = None
-        self.pinned_chat_paid_amount: int = None
-        self.pinned_chat_paid_currency: str = None
-        self.pinned_chat_paid_exponent: float = None
-        self.pinned_chat_paid_level: str = None  # Estudar possibilidade de enum
-        self.pinned_chat_paid_is_system_message: bool = None
-        self.reply_parent_msg_id: str = None
-        self.reply_parent_user_id: str = None
-        self.reply_parent_user_login: str = None
-        self.reply_parent_display_name: str = None
-        self.reply_parent_msg_body: str = None
-        self.reply_thread_parent_msg_id: str = None
-        self.reply_thread_parent_user_login: str = None
-        self.room_id: str = None
-        self.subscriber: bool = None
-        self.tmi_sent_ts: int = None  # Tempo em milisegundos
-        self.turbo: bool = None
-        self.user_id: str = None
-        self.user_type: UserType = None
-        self.vip: bool = None
-        self.ban_duration: int = None
-        self.target_user_id: str = None
-        self.login: str = None
-        self.target_msg_id: str = None  # UUID
-        self.emote_sets: List[str] = None  # Pode vir com um '0'
-        self.msg_id: MsgID = None  # Estudar possibilidade de enum. Verificar se o msgID de cada tipo de NOTICE, deve ser diferente, ou pode ser o mesmo
-        self.emote_only: bool = None
-        self.followers_only: bool = None
-        self.r9k: bool = None
-        self.slow: int = None
-        self.subs_only: bool = None
-        self.system_msg: str = None
-        self.message_id: str = None
-        self.thread_id: str = None
-        tags_dict: dict = self.parse_tags(received_msg)
+    def __init__(self, msg: Message):
+        match msg.irc_command:
+            case "JOIN":
+                pass
+            case "PART":
+                pass
+            case "PRIVMSG":
+                self.badge_info: Dict[
+                    str:str
+                ] = None  # Cada chave do dicionário é um badge, seu valor correspondente é o METADATA. Pode vir vazio
+                self.badges: Dict[
+                    str:int
+                ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
+                self.bits: int = None
+                self.color: str = (
+                    None  # Hexadecimal do RGB correspondente. Pode vir vazio
+                )
+                self.display_name: str = None  # Pode vir vazio
+                self.emotes: Dict[str : Tuple[int, int]] = None
+                self.id: str = None
+                self.mod: bool = None
+                self.pinned_chat_paid_amount: int = None
+                self.pinned_chat_paid_currency: str = None
+                self.pinned_chat_paid_exponent: float = None
+                self.pinned_chat_paid_level: str = None  # Estudar possibilidade de enum
+                self.pinned_chat_paid_is_system_message: bool = None
+                self.reply_parent_msg_id: str = None
+                self.reply_parent_user_id: str = None
+                self.reply_parent_user_login: str = None
+                self.reply_parent_display_name: str = None
+                self.reply_parent_msg_body: str = None
+                self.reply_thread_parent_msg_id: str = None
+                self.reply_thread_parent_user_login: str = None
+                self.room_id: str = None
+                self.subscriber: bool = None
+                self.tmi_sent_ts: int = None  # Tempo em milisegundos
+                self.turbo: bool = None
+                self.user_id: str = None
+                self.user_type: UserType = None
+                self.vip: bool = None
+            case "CLEARCHAT":
+                self.ban_duration: int = None
+                self.room_id: str = None
+                self.target_user_id: str = None
+                self.tmi_sent_ts: int = None  # Tempo em milisegundos
+            case "CLEARMSG":
+                self.login: str = None
+                self.room_id: str = None
+                self.target_msg_id: str = None  # UUID
+                self.tmi_sent_ts: int = None  # Tempo em milisegundos
+            case "GLOBALUSERSTATE":
+                self.badge_info: Dict[
+                    str:str
+                ] = None  # Cada chave do dicionário é um badge, seu valor correspondente é o METADATA. Pode vir vazio
+                self.badges: Dict[
+                    str:int
+                ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
+                self.color: str = (
+                    None  # Hexadecimal do RGB correspondente. Pode vir vazio
+                )
+                self.display_name: str = None  # Pode vir vazio
+                self.emote_sets: List[str] = None  # Pode vir com um '0'
+                self.turbo: bool = None
+                self.user_id: str = None
+                self.user_type: UserType = None
+            case "NOTICE":
+                self.msg_id: MsgID = None  # Estudar possibilidade de enum. Verificar se o msgID de cada tipo de NOTICE, deve ser diferente, ou pode ser o mesmo
+                self.target_user_id: str = None
+            case "ROOMSTATE":
+                self.emote_only: bool = None
+                self.followers_only: bool = None
+                self.r9k: bool = None
+                self.slow: int = None
+                self.subs_only: bool = None
+            case "USERNOTICE":
+                self.badge_info: Dict[
+                    str:str
+                ] = None  # Cada chave do dicionário é um badge, seu valor correspondente é o METADATA. Pode vir vazio
+                self.badges: Dict[
+                    str:int
+                ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
+                self.color: str = (
+                    None  # Hexadecimal do RGB correspondente. Pode vir vazio
+                )
+                self.display_name: str = None  # Pode vir vazio
+                self.emotes: Dict[str : Tuple[int, int]] = None
+                self.id: str = None
+                self.login: str = None
+                self.mod: bool = None
+                self.msg_id: MsgID = None  # Estudar possibilidade de enum. Verificar se o msgID de cada tipo de NOTICE, deve ser diferente, ou pode ser o mesmo
+                self.room_id: str = None
+                self.subscriber: bool = None
+                self.system_msg: str = None
+                self.tmi_sent_ts: int = None  # Tempo em milisegundos
+                self.turbo: bool = None
+                self.user_id: str = None
+                self.user_type: UserType = None
+                # Falta comparar o tip ode noticia que virá, para instanciar cada uma das próximas variaveis do caso 'USERNOTICE'
+                # tipos de noticia: sub, resub, subgift, submysterygift, giftpaidupgrade, rewardgift, anongiftpaidupgrade, raid, unraid, ritual, bitsbadgetier
+                self.msg_param_sub_plan: SubPlan = None  # sub, resub, subgift
+                self.msg_param_sub_plan_name: str = None  # sub, resub, subgift
+                self.msg_param_cumulative_months: int = None  # sub, resub
+                self.msg_param_should_share_streak: bool = None  # sub, resub
+                self.msg_param_streak_months: int = None  # sub, resub
+                self.msg_param_months: int = None  # subgift
+                self.msg_param_recipient_display_name: str = None  # subgift
+                self.msg_param_recipient_id: str = None  # subgift
+                self.msg_param_recipient_user_name: str = None  # subgift
+                self.msg_param_gift_months: int = None  # subgift
+                self.msg_param_promo_gift_total: int = (
+                    None  # anongiftpaidupgrade, giftpaidupgrade
+                )
+                self.msg_param_promo_name: str = (
+                    None  # anongiftpaidupgrade, giftpaidupgrade
+                )
+                self.msg_param_sender_login: str = None  # giftpaidupgrade
+                self.msg_param_sender_name: str = None  # giftpaidupgrade
+                self.msg_param_displayName: str = None  # raid
+                self.msg_param_login: str = None  # raid
+                self.msg_param_viewerCount: int = None  # raid
+                self.msg_param_ritual_name: str = None  # ritual
+                self.msg_param_threshold: int = None  # bitsbadgetier
+            case "USERSTATE":
+                self.badge_info: Dict[
+                    str:str
+                ] = None  # Cada chave do dicionário é um badge, seu valor correspondente é o METADATA. Pode vir vazio
+                self.badges: Dict[
+                    str:int
+                ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
+                self.color: str = (
+                    None  # Hexadecimal do RGB correspondente. Pode vir vazio
+                )
+                self.display_name: str = None  # Pode vir vazio
+                self.emote_sets: List[str] = None  # Pode vir com um '0'
+                self.id: str = None
+                self.mod: bool = None
+                self.subscriber: bool = None
+                self.turbo: bool = None
+                self.user_type: UserType = None
+            case "USERSTATE":
+                self.badges: Dict[
+                    str:int
+                ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
+                self.color: str = (
+                    None  # Hexadecimal do RGB correspondente. Pode vir vazio
+                )
+                self.display_name: str = None  # Pode vir vazio
+                self.emotes: Dict[str : Tuple[int, int]] = None
+                self.message_id: str = None
+                self.thread_id: str = None
+                self.user_id: str = None
+                self.turbo: bool = None
+                self.user_id: str = None
+                self.user_type: UserType = None
+
+            case "all_the_tags**skip_this_case**":
+                self.badge_info: Dict[
+                    str:str
+                ] = None  # Cada chave do dicionário é um badge, seu valor correspondente é o METADATA. Pode vir vazio
+                self.badges: Dict[
+                    str:int
+                ] = None  # Cada chave é um badge, e seu valor correspondente é sua versão. Pode vir vazio
+                self.bits: int = None
+                self.color: str = (
+                    None  # Hexadecimal do RGB correspondente. Pode vir vazio
+                )
+                self.display_name: str = None  # Pode vir vazio
+                self.emotes: Dict[str : Tuple[int, int]] = None
+                self.id: str = None
+                self.mod: bool = None
+                self.pinned_chat_paid_amount: int = None
+                self.pinned_chat_paid_currency: str = None
+                self.pinned_chat_paid_exponent: float = None
+                self.pinned_chat_paid_level: str = None  # Estudar possibilidade de enum
+                self.pinned_chat_paid_is_system_message: bool = None
+                self.reply_parent_msg_id: str = None
+                self.reply_parent_user_id: str = None
+                self.reply_parent_user_login: str = None
+                self.reply_parent_display_name: str = None
+                self.reply_parent_msg_body: str = None
+                self.reply_thread_parent_msg_id: str = None
+                self.reply_thread_parent_user_login: str = None
+                self.room_id: str = None
+                self.subscriber: bool = None
+                self.tmi_sent_ts: int = None  # Tempo em milisegundos
+                self.user_id: str = None
+                self.user_type: UserType = None
+                self.vip: bool = None
+                self.ban_duration: int = None
+                self.target_user_id: str = None
+                self.login: str = None
+                self.target_msg_id: str = None  # UUID
+                self.emote_sets: List[str] = None  # Pode vir com um '0'
+                self.msg_id: MsgID = None  # Estudar possibilidade de enum. Verificar se o msgID de cada tipo de NOTICE, deve ser diferente, ou pode ser o mesmo
+                self.emote_only: bool = None
+                self.followers_only: bool = None
+                self.r9k: bool = None
+                self.slow: int = None
+                self.subs_only: bool = None
+                self.system_msg: str = None
+                self.message_id: str = None
+                self.thread_id: str = None
+        tags_dict: dict = self.parse_tags(msg.raw_tags)
         [setattr(self, key, value) for key, value in tags_dict.items()]
 
-    def parse_tags(self, received_msg) -> dict:
+    def parse_tags(self, received_tags: str) -> dict:
         parts = received_msg.split()
         if parts[0].startswith("@"):
             tags_str = parts.pop(0).lstrip("@")
@@ -314,5 +534,5 @@ class Tags:
 
 
 received_msg = "@badge-info=;badges=broadcaster/1;client-nonce=459e3142897c7a22b7d275178f2259e0;color=#0000FF;display-name=lovingt3s;emote-only=1;emotes=62835:0-10;first-msg=0;flags=;id=885196de-cb67-427a-baa8-82f9b0fcd05f;mod=0;room-id=713936733;subscriber=0;tmi-sent-ts=1643904084794;turbo=0;user-id=713936733;user-type= :lovingt3s!lovingt3s@lovingt3s.tmi.twitch.tv PRIVMSG #lovingt3s :bleedPurple"
-tags = Tags(received_msg)
-print()
+message = Message(received_msg)
+print(message.tags.badges)

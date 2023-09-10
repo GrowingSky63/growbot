@@ -768,5 +768,5 @@ class GrowBot:
 
 
 if __name__ == "__main__":
-    bot = GrowBot("growb0t", ["xgrowingsky", "silviuss9"])
+    bot = GrowBot("growb0t", ["xgrowingsky"])
     bot.connect()
