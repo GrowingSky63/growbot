@@ -56,8 +56,8 @@ class GrowBot:
         redirect_uri="https://localhost:3000",
     ):
         # Recuperando as informações de autenticação do bot, no banco de dados
-        with Database(DB_PATH) as cursor:
-            cursor.execute(f"SELECT * FROM client_bot WHERE username = '{client_bot}'")
+        with Database(MY_CREDENTIALS_DB_PATH) as cursor:
+            cursor.execute(f"SELECT * FROM client_bots WHERE username = '{client_bot}'")
             (
                 self.client_username,
                 self.client_id,
@@ -101,7 +101,7 @@ class GrowBot:
         self.auth_code_url = f"\033[32mhttps://id.twitch.tv/oauth2/authorize?response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope={self.scopes}\033[m\n\033[34mCole o código aqui: \033[m"
 
         # Checando validade do token
-        with Database(DB_PATH) as cursor:
+        with Database(MY_CREDENTIALS_DB_PATH) as cursor:
             cursor.execute(
                 f"SELECT tokens.access_token, tokens.refresh_token, tokens.expires_in FROM tokens WHERE tokens.client_id = '{self.client_id}'"
             )
@@ -113,7 +113,8 @@ class GrowBot:
             self.access_token, self.refresh_token, self.expires_in = self.get_auth_code(
                 "authorization_code"
             )
-        if (self.expires_in - datetime.now()) < timedelta(0):
+        teste = (self.expires_in - datetime.now())
+        if teste < timedelta(0):
             self.access_token, self.refresh_token, self.expires_in = self.get_auth_code(
                 "refresh_token", self.refresh_token
             )
@@ -294,18 +295,17 @@ class GrowBot:
         )
         response = json.loads(response.content)
 
-        with Database(DB_PATH) as cursor:
+        with Database(MY_CREDENTIALS_DB_PATH) as cursor:
             cursor.execute(
-                f'SELECT tokens.* FROM tokens WHERE username = "{self.client_username}";'
+                f'SELECT * FROM tokens WHERE username = "{self.client_username}";'
             )
+            expires_in = (timedelta(seconds=response["expires_in"]) + datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
             if cursor.fetchall():
                 cursor.execute(
                     f"UPDATE tokens SET access_token = ?, expires_in = ?, refresh_token = ?, scope = ? WHERE username = ?",
                     (
                         response["access_token"],
-                        (
-                            timedelta(seconds=response["expires_in"]) + datetime.now()
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        expires_in,
                         response["refresh_token"],
                         "+".join(response["scope"]),
                         self.client_username,
@@ -317,9 +317,7 @@ class GrowBot:
                     (
                         self.client_id,
                         response["access_token"],
-                        (
-                            timedelta(seconds=response["expires_in"]) + datetime.now()
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        expires_in,
                         response["refresh_token"],
                         "+".join(response["scope"]),
                         self.client_username,
