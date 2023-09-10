@@ -14,6 +14,7 @@ import re
 
 # https://www.twitch.tv/popout/xgrowingsky/chat?popout=
 DB_PATH = "./data.db"
+MY_CREDENTIALS_DB_PATH = "./my_credentials.db"
 
 
 Command = namedtuple(

@@ -1,6 +1,7 @@
 from typing import Optional, Union, Tuple, List, Dict
 from enum import Enum
 from datetime import datetime
+from commons import *
 
 
 class PinnedChatPaidLevel(Enum):
@@ -25,7 +26,6 @@ class SubPlan(Enum):
 
 class MsgID(Enum):
     pass
-
     ## msg_id do comando "NOTICE"
     # already_banned = 'already_banned'
     # already_emote_only_off = 'already_emote_only_off'
@@ -240,9 +240,21 @@ class TagDoesntExixts(Exception):
 
 
 class Message:
-    def __init__(self, received_msg: str) -> None:
+    def __init__(self, received_msg: str, command_prefix: str='!') -> None:
+        self.command_prefix: str = command_prefix
         self.parse_message(received_msg)
-        self.tags = Tags(self)
+        self.tags: Tags = Tags(self)
+        self.command_dict = get_template_commands(self)
+        self.command_list = {
+            alias: cmd for cmd, value in self.command_dict.items() for alias in value.aliases
+        }
+        self.command_list.update({cmd: cmd for cmd in self.command_dict.keys()})
+
+        self.command_dict.update(self.predef_commands)
+        self.command_list = {
+            alias: cmd for cmd, value in self.command_dict.items() for alias in value.aliases
+        }
+        self.command_list.update({cmd: cmd for cmd in self.command_dict.keys()})
 
     def get_user_from_prefix(self, prefix):
         domain = prefix.split("!")[0]
@@ -260,13 +272,13 @@ class Message:
             self.raw_tags = None
             parts: list = received_msg.split(" ")
 
-        self.prefix = None
-        self.user = None
-        self.channel = None
-        self.text = None
-        self.text_command = None
-        self.text_args = None
-        self.irc_command = None
+        self.prefix: str = None
+        self.user: str = None
+        self.channel: str = None
+        self.text: str = None
+        self.text_command: str = None
+        self.text_args: list = None
+        self.irc_command: str = None
         self.irc_args = None
 
         if parts[0].startswith(":"):
@@ -293,6 +305,7 @@ class Message:
         )
         if hash_start != None:
             self.channel = irc_args[hash_start][1:]
+        self.text_command_wop = self.text_command.lstrip(self.command_prefix)
 
 
 class Tags:
