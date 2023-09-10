@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrowBot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1;
+        }
+
+        .popup-content {
+            background-color: #fff;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        form {
+            text-align: center;
+        }
+
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <img src="" alt="GrowBot">
+        <button id="login">Entrar</button>
+        <button id="register">Registrar-se</button>
+    </header>
+    <main>
+        <div id="popup" class="popup">
+            <div class="popup-content">
+                <span class="close" id="closePopup">&times;</span>
+                <h2>Registrar-se</h2>
+                <form id="register-form">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required>
+                    <input type="submit" value="Próximo">
+                </form>
+            </div>
+        </div>
+    </main>
+
+
+    <script> //abrir pop-up de registro
+        var pop_up = document.getElementById('popup')
+        document.getElementById('register').addEventListener('click', function () {
+            pop_up.style.display = 'block';
+        });
+
+        document.getElementById('closePopup').addEventListener('click', function () {
+            pop_up.style.display = 'none';
+        });
+
+    </script>
+
+    <script> // Submit do formulário de registro
+        document.getElementById("register-form").addEventListener("submit", function (e) {
+            e.preventDefault()
+
+            const email = document.querySelector('input[name="email"]').value
+            const password = document.querySelector('input[name="password"]').value
+
+            const data = {
+                email: email,
+                password: password,
+            };
+
+            if (post(`${window.location.href}/register`, { 'Content-Type': 'application/json' }, data).status === 200) { pop_up.style.display = 'none' }
+        })
+    </script>
+
+    <script>
+        function post(url, headers, body) {
+            fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(body)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro de rede - ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    return data
+                })
+                .catch(error => {
+                    return error.message
+                });
+        }
+    </script>
+</body>
+
+</html>
