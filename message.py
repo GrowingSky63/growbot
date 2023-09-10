@@ -310,7 +310,7 @@ if parts[0].startswith("@"):
                 if len(tag[1][i]) <= 1:  # Caso não exista meta-tag
                     tag[1][i] = tag[1][i][0]  # Retorene o valor como string
         tags[tag[0]] = tag[1]
-
+# **iteração**
 tags = Tags()
 
 #class Message:
