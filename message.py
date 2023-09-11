@@ -1,6 +1,6 @@
 from typing import Optional, Union, Tuple, List, Dict
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 from commons import *
 
 
@@ -240,8 +240,7 @@ class TagDoesntExixts(Exception):
 
 
 class Message:
-    def __init__(self, received_msg: str, command_prefix: str='!') -> None:
-        self.command_prefix: str = command_prefix
+    def __init__(self, received_msg: str):
         self.parse_message(received_msg)
         self.tags: Tags = Tags(self)
 
@@ -268,7 +267,7 @@ class Message:
         self.text_command: str = None
         self.text_args: list = None
         self.irc_command: str = None
-        self.irc_args = None
+        self.irc_args: list = None
 
         if parts[0].startswith(":"):
             prefix = parts[0][1:]
@@ -287,14 +286,13 @@ class Message:
             parts = parts[:text_start]
 
         self.irc_command = parts[0]
-        irc_args = parts[1:]
+        self.irc_args = parts[1:]
 
         hash_start = next(
-            (idx for idx, part in enumerate(irc_args) if part.startswith("#")), None
+            (idx for idx, part in enumerate(self.irc_args) if part.startswith("#")), None
         )
         if hash_start != None:
-            self.channel = irc_args[hash_start][1:]
-        self.text_command_wop = self.text_command.lstrip(self.command_prefix)
+            self.channel = self.irc_args[hash_start][1:]
 
 
 class Tags:
@@ -537,4 +535,4 @@ class Tags:
 
 received_msg = "@badge-info=;badges=broadcaster/1;client-nonce=459e3142897c7a22b7d275178f2259e0;color=#0000FF;display-name=lovingt3s;emote-only=1;emotes=62835:0-10;first-msg=0;flags=;id=885196de-cb67-427a-baa8-82f9b0fcd05f;mod=0;room-id=713936733;subscriber=0;tmi-sent-ts=1643904084794;turbo=0;user-id=713936733;user-type= :lovingt3s!lovingt3s@lovingt3s.tmi.twitch.tv PRIVMSG #lovingt3s :bleedPurple"
 message = Message(received_msg)
-print(message.tags.badges)
+print(message.irc_args)
