@@ -135,7 +135,7 @@ class GrowBot:
             "cmd": Command(
                 aliases=[],
                 function=self.cmd_cmd,
-                role="mod",
+                role="vwr",
                 universal_delay=0,
                 individual_delay=3,
                 desc="Permite criar, editar ou remover um comando de resposta personalizada.",
@@ -596,7 +596,7 @@ class GrowBot:
                                 ),
                             )
 
-            if individual_data and universal_data:
+            elif individual_data and universal_data:
                 individual_time = datetime.strptime(
                     individual_data[4], "%Y-%m-%d %H:%M:%S"
                 )
@@ -632,6 +632,33 @@ class GrowBot:
                                     msg.time.strftime("%Y-%m-%d %H:%M:%S"),
                                 ),
                             )
+            elif not individual_data and not universal_data:
+                if (
+                    msg.user_role in ["own", "mod"]
+                    or (not (universal_data or individual_data))
+                    or (
+                        (universal_delta > command.universal_delay)
+                        and (individual_delta > command.individual_delay)
+                    )
+                ):
+                    if self.roles.index(msg.user_role) >= self.roles.index(
+                        command.role
+                    ):
+                        if type(command.function) is type(tuple()):
+                            command.function[0](msg, *command.function[1])
+                        else:
+                            command.function(msg)
+                        with Database(DB_PATH) as cursor:
+                            cursor.execute(
+                                'INSERT INTO "command_history" ("cmd_name", "channel", "user", "time") VALUES (?, ?, ?, ?)',
+                                (
+                                    msg.text_command_wop,
+                                    msg.channel,
+                                    msg.user,
+                                    msg.time.strftime("%Y-%m-%d %H:%M:%S"),
+                                ),
+                            )
+
 
     def handle_variables(self, msg, text):
         final_text = text
@@ -767,5 +794,5 @@ class GrowBot:
 
 
 if __name__ == "__main__":
-    bot = GrowBot("growb0t", ["xgrowingsky"])
+    bot = GrowBot("growb0t", ["xgrowingsky", "j4panet"])
     bot.connect()

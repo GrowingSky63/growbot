@@ -244,17 +244,6 @@ class Message:
         self.command_prefix: str = command_prefix
         self.parse_message(received_msg)
         self.tags: Tags = Tags(self)
-        self.command_dict = get_template_commands(self)
-        self.command_list = {
-            alias: cmd for cmd, value in self.command_dict.items() for alias in value.aliases
-        }
-        self.command_list.update({cmd: cmd for cmd in self.command_dict.keys()})
-
-        self.command_dict.update(self.predef_commands)
-        self.command_list = {
-            alias: cmd for cmd, value in self.command_dict.items() for alias in value.aliases
-        }
-        self.command_list.update({cmd: cmd for cmd in self.command_dict.keys()})
 
     def get_user_from_prefix(self, prefix):
         domain = prefix.split("!")[0]
